@@ -60,7 +60,7 @@ int ex(nodeType *p) {
     switch(p->type) {
         case typeCon:       
         printf("\tpush\t%d\n", p->con.value); 
-        break;
+        break;  
         case typeId:
         printf("\tpush\tfp[%d]\n",getSymbol(p->id.i)->index);
         break;
@@ -76,119 +76,140 @@ int ex(nodeType *p) {
             switch(p->opr.oper) {
                 case INT: 
                 case CHAR://Declaration
-                if(p->opr.oper == INT)
-                    type = INTTYPE;
-                else if(p->opr.oper == CHAR)
-                    type = CHARTYPE;
-                else{
-                    printf("Compile Error(1072): Unknown indentifier type\n");
-                    exit(-1);
+                    if(p->opr.oper == INT)
+                        type = INTTYPE;
+                    else if(p->opr.oper == CHAR)
+                        type = CHARTYPE;
+                    else{
+                        printf("Compile Error(1072): Unknown indentifier type\n");
+                        exit(-1);
+                    }
+                    switch(p->opr.op[0]->type){
+                        case typeId://A variable
+                            printf("\tpush\tsp\n");//allocate space in stack
+                            printf("\tpush\t1\n");
+                            printf("\tadd\t\n");
+                            printf("\tpop\tsp\n");
+                            break;
+                        case typeArr://An array
+                            size = (int *)malloc(sizeof(int) * p->opr.op[0]->arr.dimension);
+                            for(i = 0; i < p->opr.op[0]->arr.dimension; i++){
+                                ex(p->opr.op[0]->arr.index[i]);
+                            }
+                            for(i = 0; i < p->opr.op[0]->arr.dimension - 1; i++){
+                                printf("\tmul\t\n");
+                                }
+                            printf("\tpush\tsp\n");
+                            printf("\tadd\t\n");
+                            printf("\tpop\tsp\n");
+                            break;
+                        default:
+                            printf("Compile Error(1070): Unknown declaration type. <%d>\n",p->opr.op[0]->type);
+                            exit(-1);
+                            break;
+                    }
+                    break;
+                case CODEBLOCK:
+                    ex(p->opr.op[0]);
+                    ex(p->opr.op[1]);
+                    break;
+                case FOR:
+                    ex(p->opr.op[0]);
+                    printf("L%03d:\n", lblx = lbl++);
+                    ex(p->opr.op[1]);
+                    printf("\tj0\tL%03d\n", lbly = lbl++);
+                    lblz = lbl++;
+                    push(lblz,lbly);        
+                    ex(p->opr.op[3]);
+                    printf("L%03d:\n", lblz);
+                    ex(p->opr.op[2]);
+                    printf("\tjmp\tL%03d\n", lblx);
+                    printf("L%03d:\n", lbly);
+                    pop();
+                    break;
+                case CALL:
+                    char* fun_name = p->opr.op[0]->id.i;//get function name;
+                    int numofparas = 0;
+                    FunNode* func;
+                    nodeType* paras;
+                    /*push parameters in stack*/
+                    for(paras = p->opr.op[1];paras != NULL;paras = paras->next){
+                        storeOffsetInIn(paras->name);
+                        if(paras->name->type == typeArr)
+                            testOutofBoundary(paras->name);
+                        printf("\tpush\tfp[in]\n");//push para in stack
+                        numofparas++;
+                    }
+                    /*actually, this exist check should be done in c8.y*/
+                    if(func = getFunc(fun_name) == NULL){ 
+                        printf("Error 1051: function (%s())not declared.\n",fun_name);
+                        exit(-1);
+                    }
+                    printf("\tcall\tL%03d,%d\n",func->label,numofparas);
+                break;
+                case WHILE:
+                    printf("L%03d:\n", lbl1 = lbl++);
+                    ex(p->opr.op[0]);
+                    printf("\tj0\tL%03d\n", lbl2 = lbl++);
+                    push(lbl1,lbl2);
+                    ex(p->opr.op[1]);
+                    printf("\tjmp\tL%03d\n", lbl1);
+                    printf("L%03d:\n", lbl2);
+                    pop();
+                break;
+                case DO-WHILE:
+                    lbl1 = lbl++;
+                    lbl2 = lbl++;
+                    lbl3 = lbl++;
+                    push(lbl3,lbl2);
+                    printf("L%03d:\n",lbl1);
+                    ex(p->opr.op[0]);
+                    printf("L%03d:\n", lbl3);
+                    ex(p->opr.op[1]);
+                    printf("\tj0\tL%03d\n", lbl2);
+                    printf("\tjmp\tL%03d\n", lbl1);
+                    printf("L%03d:\n", lbl2);
+                    pop();
+                break;
+                case BREAK: printf("\tjmp\tL%03d\n", top(1)); break;
+                case CONTINUE: printf("\tjmp\tL%03d\n", top(0)); break;
+                case IF:
+                ex(p->opr.op[0]);
+                if (p->opr.nops > 2) {
+                    printf("\tj0\tL%03d\n", lbl1 = lbl++);
+                    ex(p->opr.op[1]);
+                    printf("\tjmp\tL%03d\n", lbl2 = lbl++);
+                    printf("L%03d:\n", lbl1);
+                    ex(p->opr.op[2]);
+                    printf("L%03d:\n", lbl2);
+                } else {
+                    printf("\tj0\tL%03d\n", lbl1 = lbl++);
+                    ex(p->opr.op[1]);
+                    printf("L%03d:\n", lbl1);
                 }
-                switch(p->opr.op[0]->type){
-                    case typeId://A variable
-                        printf("\tpush\tsp\n");//allocate space in stack
-                        printf("\tpush\t1\n");
-                        printf("\tadd\t\n");
-                        printf("\tpop\tsp\n");
-                        break;
-                    case typeArr://An array
-                    size = (int *)malloc(sizeof(int) * p->opr.op[0]->arr.dimension);
-                for(i = 0; i < p->opr.op[0]->arr.dimension; i++){
-                    ex(p->opr.op[0]->arr.index[i]);
-                }
-                for(i = 0; i < p->opr.op[0]->arr.dimension - 1; i++){
-                    printf("\tmul\t\n");
-                }
-                printf("\tpush\tsp\n");
-                printf("\tadd\t\n");
-                printf("\tpop\tsp\n");
-            break;
-            default:
-                printf("Compile Error(1070): Unknown declaration type. <%d>\n",p->opr.op[0]->type);
-                exit(-1);
-            break;
-            }
-        break;
-        case FOR:
-            ex(p->opr.op[0]);
-            printf("L%03d:\n", lblx = lbl++);
-            ex(p->opr.op[1]);
-            printf("\tj0\tL%03d\n", lbly = lbl++);
-            lblz = lbl++;
-            push(lblz,lbly);        
-            ex(p->opr.op[3]);
-            printf("L%03d:\n", lblz);
-            ex(p->opr.op[2]);
-            printf("\tjmp\tL%03d\n", lblx);
-            printf("L%03d:\n", lbly);
-            pop();
-        break;
-        case CALL:
-            
-        break;
-        case WHILE:
-            printf("L%03d:\n", lbl1 = lbl++);
-            ex(p->opr.op[0]);
-            printf("\tj0\tL%03d\n", lbl2 = lbl++);
-            push(lbl1,lbl2);
-            ex(p->opr.op[1]);
-            printf("\tjmp\tL%03d\n", lbl1);
-            printf("L%03d:\n", lbl2);
-            pop();
-        break;
-        case DO-WHILE:
-            lbl1 = lbl++;
-            lbl2 = lbl++;
-            lbl3 = lbl++;
-            push(lbl3,lbl2);
-            printf("L%03d:\n",lbl1);
-            ex(p->opr.op[0]);
-            printf("L%03d:\n", lbl3);
-            ex(p->opr.op[1]);
-            printf("\tj0\tL%03d\n", lbl2);
-            printf("\tjmp\tL%03d\n", lbl1);
-            printf("L%03d:\n", lbl2);
-            pop();
-        break;
-        case BREAK: printf("\tjmp\tL%03d\n", top(1)); break;
-        case CONTINUE: printf("\tjmp\tL%03d\n", top(0)); break;
-        case IF:
-        ex(p->opr.op[0]);
-        if (p->opr.nops > 2) {
-            printf("\tj0\tL%03d\n", lbl1 = lbl++);
-            ex(p->opr.op[1]);
-            printf("\tjmp\tL%03d\n", lbl2 = lbl++);
-            printf("L%03d:\n", lbl1);
-            ex(p->opr.op[2]);
-            printf("L%03d:\n", lbl2);
-        } else {
-            printf("\tj0\tL%03d\n", lbl1 = lbl++);
-            ex(p->opr.op[1]);
-            printf("L%03d:\n", lbl1);
-        }
-        break;
-        case READ:
-            printf("\tgeti\n");
-            storeOffsetInIn(p->opr.op[0]); 
-            if(p->opr.op[0]->type == typeArr)
-                testOutofBoundary(p->opr.op[0]);               
-            printf("\tpop\tfp[in]\n");
-        break;
-        case PRINT:     
-            ex(p->opr.op[0]);
-            printf("\tputi\n");
-        break;
-        case '=':
-            ex(p->opr.op[1]);
-            storeOffsetInIn(p->opr.op[0]);
-            if(p->opr.op[0]->type == typeArr)
-                testOutofBoundary(p->opr.op[0]);
-            printf("\tpop\tfp[in]\n");
-        break;
-        case UMINUS:    
-            ex(p->opr.op[0]);
-            printf("\tneg\n");
-        break;
+                break;
+                case READ:
+                    printf("\tgeti\n");
+                    storeOffsetInIn(p->opr.op[0]); 
+                    if(p->opr.op[0]->type == typeArr)
+                        testOutofBoundary(p->opr.op[0]);               
+                    printf("\tpop\tfp[in]\n");
+                break;
+                case PRINT:     
+                    ex(p->opr.op[0]);
+                    printf("\tputi\n");
+                break;
+                case '=':
+                    ex(p->opr.op[1]);
+                    storeOffsetInIn(p->opr.op[0]);
+                    if(p->opr.op[0]->type == typeArr)
+                        testOutofBoundary(p->opr.op[0]);
+                    printf("\tpop\tfp[in]\n");
+                break;
+                case UMINUS:    
+                    ex(p->opr.op[0]);
+                    printf("\tneg\n");
+                break;
             default:/*Expr*/
 /*semicolon*/
         ex(p->opr.op[0]);

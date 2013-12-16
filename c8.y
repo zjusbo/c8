@@ -102,18 +102,18 @@ parameter:
    | CHAR ident            { $$ = para(NULL, CHAR, $2); }
    | INT ident             { $$ = para(NULL, INT, $2); }
    | error ident                              {$$ = NULL;strcat(err,"Error: unknown type"); lyyerror(err); err[0] = 0;}
-   | /*NULL*/              { $$ = para(NULL, 0, NULL); }
+   | /*NULL*/              { $$ = NULL; /*$$ = para(NULL, 0, NULL); */}
    ;
 
 paras:
 	ident 								{ $$ = para(NULL, 0, $1); }
 	| paras ',' ident 					{ $$ = para($1, 0, $3);}
-	| /*NULL*/							{ $$ = para(NULL, 0, NULL); }
+	| /*NULL*/							{ $$ = NULL; /*$$ = para(NULL, 0, NULL);*/ }
 	;
 
 compound_stmt:
           compound_stmt stmt                 { $$ = opr(CODEBLOCK, 2, $1, $2); }
-   | /*NULL*/              {}
+   | /*NULL*/              {$$ = NULL;}
    ;
 
 stmt:
