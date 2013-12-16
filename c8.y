@@ -34,10 +34,6 @@ char * errtext;
 bool iserror;
 void lyyerror(char *);
 void yyerror(char *s);
-typedef struct {
-  int first_line,first_column;
-} errlocation;
-errlocation lastErrLocation = {0,0};
 nodeType *parseTree[1024];
 int count=1;
 
@@ -45,6 +41,8 @@ void c8y_init();
 char err[50] = "";
 
 int sym[26];                    /* symbol table */
+int funCount=0;
+int thisFunc;
 %}
 
 %union {
@@ -70,29 +68,29 @@ int sym[26];                    /* symbol table */
 
 program:
                 main
-              | program function
+              | function program 
               ;
 main:
-                INT MAIN '(' parameter ')' '{' compound_stmt '}'         { $$ = fun("main", $7, INT, $4);  parseTree[0] = $$; }
-             | error MAIN          { $$ = NULL; iserror = true; 
-                                              strcat(err,"Error: return type of main() must be 'int' ");
-                                              lyyerror(err); err[0] = 0;YYERROR;
-                                            }
+                INT MAIN '(' parameter ')' '{' compound_stmt '}'         {  thisFunc = funCount++; $$ = fun("main", $7, INT, $4); 
+									    if(!insertFunction(INTTYPE,$$)){$$ = NULL;iserror = true; 											 lyyerror(err); YYERROR;  } 
+									    else parseTree[0] = $$;}
                ;
 
 function:
                 INT VARIABLE '(' parameter ')' '{' compound_stmt '}'     
-                                                          { $$ = id($2); $$ = fun($$->id.i, $7, INT, $4);  parseTree[count++] = $$; }
-             | CHAR VARIABLE '(' parameter ')' '{' compound_stmt '}'         { $$ = id($2); $$ = fun($$->id.i, $7, CHAR, $4);  parseTree[count++] = $$; }
-             | error VARIABLE   { $$ = NULL; iserror = true; printf("Error: return type of %s() is illegal",$2);YYERROR;}
-             ;
+                                                          { $$ = id($2); $$ = fun($$->id.i, $7, INT, $4);  
+								if(!insertFunction(INTTYPE,$$)){$$ = NULL;iserror = true; 											 lyyerror(err);   }
+								else parseTree[count++] = $$; }
+   |CHAR VARIABLE '(' parameter ')' '{'
+   compound_stmt '}'         { $$ = id($2); $$ = fun($$->id.i, $7, CHAR, $4);  if(!insertFunction(INTTYPE,$$)){$$ = NULL;iserror = true; 											 lyyerror(err);   } 
+								else parseTree[count++] = $$; }
+   ;
 parameter:
-     parameter ',' INT ident           { $$ = para($1, INT, $4); }
+   parameter ',' INT ident       { $$ = para($1, INT, $4); }
    | parameter ',' CHAR ident      { $$ = para($1, CHAR, $4); }
-   | CHAR ident                            { $$ = para(NULL, CHAR, $2); }
-   | INT ident                                { $$ = para(NULL, INT, $2); }
-   | /*NULL*/                                 { $$ = para(NULL, 0, NULL); }
-   | error ident                              {$$ = NULL;strcat(err,"Error: unknown type"); lyyerror(err); err[0] = 0;}
+   | CHAR ident            { $$ = para(NULL, CHAR, $2); }
+   | INT ident             { $$ = para(NULL, INT, $2); }
+   | /*NULL*/              { $$ = para(NULL, 0, NULL); }
    ;
 
 paras:
@@ -168,7 +166,7 @@ stmtInLoop:                                       /*These statements can be in t
                     }
             } 
   | FOR '(' stmt stmt stmt ')' stmtInLoop { $$ = opr(FOR, 4, $3, $4,$5, $7); }
-  | WHILE '(' expr ')' stmtInLoop     { $$ = opr(WHILE, 2, $3, $5); }
+        | WHILE '(' expr ')' stmtInLoop     { $$ = opr(WHILE, 2, $3, $5); }
   | IF '(' expr ')' stmtInLoop %prec IFX  { $$ = opr(IF, 2, $3, $5);}
   | IF '(' expr ')' stmtInLoop ELSE stmtInLoop { $$ = opr(IF, 3, $3, $5, $7);}
         | '{' stmtInLoop_list '}'               { $$ = $2; }
@@ -395,19 +393,11 @@ void freeNode(nodeType *p) {
 /**
  * error recover
  */
-void yyerror(char *s) {  
-      if(yylloc.first_line == lastErrLocation.first_line && yylloc.first_column == lastErrLocation.first_column)
-          return;
-      fprintf(stdout,"%s at line %d, cols %d-%d\n",s,yylloc.first_line,yylloc.first_column,yylloc.last_column); 
-    }
+void yyerror(char *s) {fprintf(stdout,"%s\n",s); }
 void lyyerror(char *s) {
-  if(yylloc.first_line == lastErrLocation.first_line && yylloc.first_column == lastErrLocation.first_column)
-      return;
   printf("%s: \"%s\" at line %d, cols %d-%d\n", s, errtext,
     yylloc.first_line, yylloc.first_column, yylloc.last_column);
   errtext = NULL;
-  lastErrLocation.first_line = yylloc.first_line;
-  lastErrLocation.first_column = yylloc.first_column;
 }
 
 /**
