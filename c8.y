@@ -1,3 +1,4 @@
+
 %locations
 %{
 #include <stdio.h>
