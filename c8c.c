@@ -15,6 +15,17 @@ struct stack{
     int i;
 int (*data)[2];//data[0] for start lable, data[1] for end lable.
 }s;
+typedef struct funnode{
+     int funid;
+     int label;
+     char *name;
+     int returnType;
+     nodeType * parameter;
+     struct funnode * next;
+ }FunNode;
+ FunNode *fn = NULL;
+ bool insertFunction(SymbolType type, nodeType* p, int funid);
+ FunNode * getFunc(char * name);
 
 typedef struct symbolnode{
     char * name;//Variable name
@@ -62,18 +73,18 @@ int ex(nodeType *p) {
         printf("\tpush\tfp[in]\n");
         break;
         case typeOpr:
-        switch(p->opr.oper) {
-            case INT: 
-        case CHAR://Declaration
-        if(p->opr.oper == INT)
-            type = INTTYPE;
-        else if(p->opr.oper == CHAR)
-            type = CHARTYPE;
-        else{
-            printf("Compile Error(1072): Unknown indentifier type\n");
-            exit(-1);
-        }
-        switch(p->opr.op[0]->type){
+            switch(p->opr.oper) {
+                case INT: 
+                case CHAR://Declaration
+                if(p->opr.oper == INT)
+                    type = INTTYPE;
+                else if(p->opr.oper == CHAR)
+                    type = CHARTYPE;
+                else{
+                    printf("Compile Error(1072): Unknown indentifier type\n");
+                    exit(-1);
+                }
+                switch(p->opr.op[0]->type){
                     case typeId://A variable
                         printf("\tpush\tsp\n");//allocate space in stack
                         printf("\tpush\t1\n");
@@ -82,22 +93,21 @@ int ex(nodeType *p) {
                         break;
                     case typeArr://An array
                     size = (int *)malloc(sizeof(int) * p->opr.op[0]->arr.dimension);
-                    int tempsize;
-            for(i = 0; i < p->opr.op[0]->arr.dimension; i++){
-                ex(p->opr.op[0]->arr.index[i]);
-            }
-            for(i = 0; i < p->opr.op[0]->arr.dimension - 1; i++){
-                printf("\tmul\t\n");
-            }
-            printf("\tpush\tsp\n");
-            printf("\tadd\t\n");
-            printf("\tpop\tsp\n");
+                for(i = 0; i < p->opr.op[0]->arr.dimension; i++){
+                    ex(p->opr.op[0]->arr.index[i]);
+                }
+                for(i = 0; i < p->opr.op[0]->arr.dimension - 1; i++){
+                    printf("\tmul\t\n");
+                }
+                printf("\tpush\tsp\n");
+                printf("\tadd\t\n");
+                printf("\tpop\tsp\n");
             break;
             default:
-            printf("Compile Error(1070): Unknown declaration type. <%d>\n",p->opr.op[0]->type);
-            exit(-1);
+                printf("Compile Error(1070): Unknown declaration type. <%d>\n",p->opr.op[0]->type);
+                exit(-1);
             break;
-        }
+            }
         break;
         case FOR:
             ex(p->opr.op[0]);
@@ -112,6 +122,9 @@ int ex(nodeType *p) {
             printf("\tjmp\tL%03d\n", lblx);
             printf("L%03d:\n", lbly);
             pop();
+        break;
+        case CALL:
+            
         break;
         case WHILE:
             printf("L%03d:\n", lbl1 = lbl++);
@@ -382,6 +395,59 @@ SymbolNode * getSymbol(char * name){
     return NULL;
     //exit(-1);
 }
+bool insertFunction(SymbolType type, nodeType* p, int funid){
+     FunNode * pTmp, *lastNode;
+     if(!p) return false;
+     if(!fn){
+     if(!(fn = (FunNode *)malloc(sizeof(FunNode)))){
+         strcat(err,"Error: Can not allocate memory for function "); errtext = p->fun.name; 
+         return false;
+     }
+     fn->funid = funid;
+     fn->name = p->fun.name;
+     fn->returnType = p->fun.returnType;
+     fn->parameter = p->fun.paraHead;
+     fn->label = lbl++;
+     fn->next = NULL;
+         }
+     else{
+      for(pTmp = fn; pTmp != NULL;pTmp = pTmp->next){
+             if (!strcmp(pTmp->name, p->fun.name))//Same symbol name
+             {
+                 strcat(err,"Error: Function redeclared"); errtext =  p->fun.name; 
+             return false;
+             }
+             lastNode = pTmp;
+        }
+      if(!(lastNode->next = (FunNode *)malloc(sizeof(FunNode)))){
+         strcat(err,"Error: Can not allocate memory for function "); errtext =  p->fun.name; 
+         return false;
+         }
+         /*Move pointer to last node*/
+         lastNode = lastNode->next;
+         /*Copy infomation*/
+         lastNode->name = p->fun.name;
+         lastNode->funid = funid;
+         lastNode->returnType = p->fun.returnType;
+     lastNode->parameter = p->fun.paraHead;
+     lastNode->label = lbl++;
+     lastNode->next = NULL;
+     }
+     return true;
+     
+ }
+ FunNode * getFunc(char * name){
+     
+     FunNode * p;    
+     for(p = fn; p != NULL;p = p->next){
+         if (!strcmp(p->name,name))
+         {
+             return p;
+         }
+     }
+     return NULL;
+     //exit(-1);
+ }
 /**
  * Test whether the index of array is out of boundary.
  */
