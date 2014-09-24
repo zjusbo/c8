@@ -1,5 +1,5 @@
 Quick Guide of c8c Compiler
-============================
+==================
 This is a quick guide of c8c compiler. It would help you to get start with it.
 
 ##Compiler Description
@@ -82,3 +82,4 @@ To redirect the assemble code for running, type(**recommanded**)
 
 [Song Bo](mailto:sbo@zju.edu.cn), [Wang Yue](mailto:3110101447@zju.edu.cn) 
 Zhejiang University
+
