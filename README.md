@@ -78,7 +78,7 @@ To see the assemble code on the screen, type
 To redirect the assemble code for future running, type(**recommanded**)
 	- ./c8c case1.sc > case1.as
 
-6. run assemble codes
+6. run assemble code
 	- ./nas case1.as
 
 7. check the fascinating results and admire them.
