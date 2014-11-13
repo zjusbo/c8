@@ -92,3 +92,5 @@ Zhejiang University
 ##Credits
 
 [Prof. Francis Chi Moon Lau](http://i.cs.hku.hk/~fcmlau/)
+
+The University of Hong Kong
