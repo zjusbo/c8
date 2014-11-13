@@ -86,5 +86,9 @@ To redirect the assemble code for future running, type(**recommanded**)
 ##Author
 
 [Song Bo](mailto:sbo@zju.edu.cn), [Wang Yue](mailto:3110101447@zju.edu.cn) 
+
 Zhejiang University
 
+##Credits
+
+[Prof. Francis Chi Moon Lau](http://i.cs.hku.hk/~fcmlau/)
