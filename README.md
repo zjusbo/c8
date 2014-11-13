@@ -89,7 +89,7 @@ To redirect the assemble code for future running, type(**recommanded**)
 
 Zhejiang University
 
-##Credits
+##Credits to
 
 [Prof. Francis Chi Moon Lau](http://i.cs.hku.hk/~fcmlau/)
 
