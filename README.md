@@ -1,4 +1,4 @@
-Quick Guide of c8c Compiler
+A Quick Guide for c8c Compiler
 ==================
 This is a quick guide of c8c compiler. It would help you to get start with it.
 
